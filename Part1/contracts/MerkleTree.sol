@@ -11,7 +11,7 @@ contract MerkleTree is Groth16Verifier {
 
     constructor() {
         // [assignment] initialize a Merkle tree of 8 with blank leaves
-        index = 9;
+        index = 8;
         for (uint i = 0; i < 15; i++) {
             hashes.push(0);
         }
@@ -23,6 +23,22 @@ contract MerkleTree is Groth16Verifier {
 
     function insertLeaf(uint256 hashedLeaf) public returns (uint256) {
         // [assignment] insert a hashed leaf into the Merkle tree
+        hashes[index] = hashedLeaf;
+        index++;
+        uint numberOfNodes = index;
+        uint offset;
+        while (numberOfNodes > 0) {
+            for (uint i = 0; i < numberOfNodes-1; i+=2) {
+                hashes.push(PoseidonT3.poseidon([hashes[offset+i], hashes[offset+i+1]]));
+            }
+            if (numberOfNodes % 2 == 1) {
+                hashes.push(PoseidonT3.poseidon([hashes[offset+numberOfNodes-1], hashes[offset+numberOfNodes-1]]));
+            }
+            offset += numberOfNodes;
+            numberOfNodes = numberOfNodes/2;
+        }
+        root = hashes[hashes.length-1];
+        return root;
     }
 
     function verify(
