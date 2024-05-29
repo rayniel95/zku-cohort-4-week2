@@ -11,14 +11,23 @@ contract MerkleTree is Groth16Verifier {
 
     constructor() {
         // [assignment] initialize a Merkle tree of 8 with blank leaves
-        index = 8;
-        for (uint i = 0; i < 15; i++) {
+        for (uint i = 0; i < 8; i++) {
             hashes.push(0);
         }
-        for (uint i = 6; i >=0; i--) {
-            hashes[i] = PoseidonT3.poseidon([hashes[i*2], hashes[i*2+1]]);
+        index = 8;
+        uint numberOfNodes = index;
+        uint offset;
+        while (numberOfNodes > 0) {
+            for (uint i = 0; i < numberOfNodes-1; i+=2) {
+                hashes.push(PoseidonT3.poseidon([hashes[offset+i], hashes[offset+i+1]]));
+            }
+            if (numberOfNodes % 2 == 1) {
+                hashes.push(PoseidonT3.poseidon([hashes[offset+numberOfNodes-1], hashes[offset+numberOfNodes-1]]));
+            }
+            offset += numberOfNodes;
+            numberOfNodes = numberOfNodes/2;
         }
-        root = hashes[0];
+        root = hashes[hashes.length-1];
     }
 
     function insertLeaf(uint256 hashedLeaf) public returns (uint256) {
@@ -42,12 +51,14 @@ contract MerkleTree is Groth16Verifier {
     }
 
     function verify(
-            uint[2] memory a,
-            uint[2][2] memory b,
-            uint[2] memory c,
-            uint[1] memory input
+            uint[2] calldata a,
+            uint[2][2] calldata b,
+            uint[2] calldata c,
+            uint[1] calldata input
         ) public view returns (bool) {
 
         // [assignment] verify an inclusion proof and check that the proof root matches current root
+        bool response = super.verifyProof(a, b, c, input);
+        return response;
     }
 }
